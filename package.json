@@ -1,9 +1,9 @@
 {
-  "name": "vite-mui-ts",
+  "name": "gigi-board",
   "version": "1.0.0",
-  "description": "TypeScript + React + Redux + MUI + RRD + ESLint + Prettier => Boilerplate",
+  "description": "Board for Gigi",
   "license": "MIT",
-  "author": "emrecil <info.emrecil@gmail.com>",
+  "author": "ugho628@gmail.com",
   "keywords": [
     "react",
     "boilerplate",
@@ -17,12 +17,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/emre-cil/vite-mui-ts.git"
+    "url": "https://"
   },
   "bugs": {
-    "url": "https://github.com/emre-cil/vite-mui-ts/issues"
+    "url": "https://"
   },
-  "homepage": "https://github.com/emre-cil/vite-mui-ts#readme",
+  "homepage": "https://",
   "scripts": {
     "dev": "vite --open",
     "start": "vite --open",
