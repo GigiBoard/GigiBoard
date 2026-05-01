@@ -9,7 +9,7 @@ export default interface IGigiService {
     
     addStudentTo(classId: string, student: Student): Promise<Student>;
     updateStudentTo(classId: string, student: Student): Promise<Student>;
-    deleteStudentFrom(classId: string, student: Student): Promise<Student>;
+    deleteStudentFrom(classId: string, studentId: string): Promise<Student>;
     getStudentListOf(classId: string): Promise<Student[]>;
 
     getPointDetailOf(studentId: string): Promise<PointDetail[]>;

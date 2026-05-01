@@ -121,12 +121,29 @@ export default class LsGigiService implements IGigiService {
         return student;
     }
 
-    deleteStudentFrom(classId: string, student: Student): Promise<Student> {
-        throw new Error("Method not implemented.");
+    async deleteStudentFrom(classId: string, studentId: string): Promise<Student> {
+        const classMates = await this.lsMgr.load();
+        const id = studentId
+        const targetCm = classMates.find(cm => cm.class.id === classId);
+
+        if (!targetCm) throw new Error("No such class");
+
+        const deleted = JSON.parse(JSON.stringify(targetCm.students[id]))
+
+        delete targetCm.students[id];
+
+        this.lsMgr.save(classMates);
+
+        return deleted;
     }
 
-    getStudentListOf(classId: string): Promise<Student[]> {
-        throw new Error("Method not implemented.");
+    async getStudentListOf(classId: string): Promise<Student[]> {
+        const classMates = await this.lsMgr.load();
+        const targetCm = classMates.find(cm => cm.class.id === classId);
+
+        if (!targetCm) throw new Error("No such class");
+
+        return Object.values(targetCm.students);
     }
 
     getPointDetailOf(studentId: string): Promise<PointDetail[]> {
