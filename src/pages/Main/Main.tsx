@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -20,6 +20,11 @@ import {
   DialogContentText,
   Chip,
   GlobalStyles,
+  Drawer,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Switch,
 } from '@mui/material';
 import {
   Star,
@@ -28,40 +33,62 @@ import {
   School,
   Close as CloseIcon,
   Add as AddIcon,
+  Sort as SortIcon,
+  Settings as SettingsIcon,
+  CloudDownload as BackupIcon,
+  CloudUpload as RestoreIcon,
+  DeleteForever as ClearIcon,
+  DarkMode as DarkModeIcon,
+  LightMode as LightModeIcon,
 } from '@mui/icons-material';
 import LsGigiService from '@/app/service/LsGigiService';
 import { Class } from '@/types/class';
 import { Student } from '@/types/student';
+import { useAppDispatch, useAppSelector } from '@/app/store';
+import { changeMode } from '@/features/user/userSlice';
 
 const gigiService = new LsGigiService();
 
+type SortOrder = 'none' | 'asc' | 'desc';
+
 const Main = () => {
+  const dispatch = useAppDispatch();
+  const themeMode = useAppSelector((state) => state.user.mode);
+  
   const [classList, setClassList] = useState<Class[]>([]);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('none');
 
   const [isClassDialogOpen, setIsClassDialogOpen] = useState(false);
   const [isStudentDialogOpen, setIsStudentDialogOpen] = useState(false);
   const [isDeleteClassDialogOpen, setIsDeleteClassDialogOpen] = useState(false);
   const [isDeleteStudentDialogOpen, setIsDeleteStudentDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
   const [newClassName, setNewClassName] = useState('');
   const [newStudentName, setNewStudentName] = useState('');
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [classToDelete, setClassToDelete] = useState<Class | null>(null);
+  const [restoreDataStr, setRestoreDataStr] = useState('');
 
   const classInputRef = useRef<HTMLInputElement>(null);
   const studentInputRef = useRef<HTMLInputElement>(null);
   const deleteClassInputRef = useRef<HTMLInputElement>(null);
   const deleteStudentInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadClasses = async () => {
     const list = await gigiService.getClassList();
     setClassList(list);
-    if (list.length > 0 && !selectedClass) {
-      setSelectedClass(list[0]);
-    } else if (list.length === 0) {
+    if (list.length > 0) {
+      if (!selectedClass || !list.find(c => c.id === selectedClass.id)) {
+        setSelectedClass(list[0]);
+      }
+    } else {
       setSelectedClass(null);
     }
   };
@@ -147,11 +174,7 @@ const Main = () => {
     setDeleteConfirmName('');
     setClassToDelete(null);
     setIsDeleteClassDialogOpen(false);
-    const updatedList = await gigiService.getClassList();
-    setClassList(updatedList);
-    if (selectedClass?.id === classToDelete.id) {
-      setSelectedClass(updatedList.length > 0 ? updatedList[0] : null);
-    }
+    await loadClasses();
   };
 
   const handleDeleteStudent = async () => {
@@ -169,6 +192,73 @@ const Main = () => {
       e.preventDefault();
       action();
     }
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => {
+      if (prev === 'none') return 'desc';
+      if (prev === 'desc') return 'asc';
+      return 'none';
+    });
+  };
+
+  const sortedStudents = useMemo(() => {
+    if (sortOrder === 'none') return students;
+    
+    return [...students].sort((a, b) => {
+      if (sortOrder === 'asc') return a.point - b.point;
+      return b.point - a.point;
+    });
+  }, [students, sortOrder]);
+
+  const handleBackup = async () => {
+    const data = await gigiService.backupData();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}`;
+    
+    link.href = url;
+    link.download = `GigiBoard_${dateStr}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result;
+      if (typeof result === 'string') {
+        setRestoreDataStr(result);
+        setIsRestoreConfirmOpen(true);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset for same file re-selection
+  };
+
+  const handleRestore = async () => {
+    try {
+      await gigiService.restoreData(restoreDataStr);
+      setIsRestoreConfirmOpen(false);
+      setIsSettingsOpen(false);
+      await loadClasses();
+      alert('데이터가 성공적으로 복원되었습니다.');
+    } catch (err) {
+      alert('데이터 복원에 실패했습니다. 올바른 JSON 형식인지 확인해 주세요.');
+    }
+  };
+
+  const handleClearData = async () => {
+    await gigiService.clearData();
+    setIsClearConfirmOpen(false);
+    setIsSettingsOpen(false);
+    await loadClasses();
+    alert('모든 데이터가 초기화되었습니다.');
   };
 
   const renderPoints = (point: number) => {
@@ -216,7 +306,7 @@ const Main = () => {
   };
 
   return (
-    <Container sx={{ py: 4 }}>
+    <Container sx={{ py: 4, position: 'relative' }}>
       <GlobalStyles styles={{
         '@keyframes lightningStrike': {
           '0%': { transform: 'translateY(-20px) scaleY(1.5)', opacity: 0 },
@@ -228,6 +318,13 @@ const Main = () => {
           '100%': { transform: 'rotateZ(360deg) scale(1)', opacity: 1 },
         }
       }} />
+      
+      <Box sx={{ position: 'absolute', top: 24, right: 24 }}>
+        <IconButton onClick={() => setIsSettingsOpen(true)} size="large">
+          <SettingsIcon />
+        </IconButton>
+      </Box>
+
       <Stack direction="row" justifyContent="center" alignItems="center" mb={6}>
         <Typography variant="h3" component="h1" fontWeight="bold">
           Gigi Board
@@ -284,18 +381,29 @@ const Main = () => {
               <CardContent>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
                   <Typography variant="h5" fontWeight="bold">{selectedClass.name} 학생 명단</Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<PersonAdd />}
-                    onClick={() => setIsStudentDialogOpen(true)}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    학생 추가
-                  </Button>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      variant={sortOrder !== 'none' ? 'contained' : 'outlined'}
+                      startIcon={<SortIcon />}
+                      onClick={toggleSortOrder}
+                      color="secondary"
+                      sx={{ borderRadius: 2 }}
+                    >
+                      {sortOrder === 'none' ? '정렬' : sortOrder === 'desc' ? '높은순' : '낮은순'}
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<PersonAdd />}
+                      onClick={() => setIsStudentDialogOpen(true)}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      학생 추가
+                    </Button>
+                  </Stack>
                 </Stack>
 
                 <List disablePadding>
-                  {students.map((student) => (
+                  {sortedStudents.map((student) => (
                     <ListItem
                       key={student.id}
                       component={Paper}
@@ -386,6 +494,68 @@ const Main = () => {
           </Button>
         </Box>
       )}
+
+      {/* Settings Drawer */}
+      <Drawer
+        anchor="right"
+        open={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      >
+        <Box sx={{ width: 300, p: 3 }}>
+          <Typography variant="h5" gutterBottom fontWeight="bold">설정</Typography>
+          <Divider sx={{ my: 2 }} />
+          
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>테마 설정</Typography>
+          <List>
+            <ListItem 
+              secondaryAction={
+                <Switch
+                  edge="end"
+                  onChange={() => dispatch(changeMode())}
+                  checked={themeMode === 'dark'}
+                />
+              }
+            >
+              <ListItemIcon>
+                {themeMode === 'dark' ? <DarkModeIcon /> : <LightModeIcon />}
+              </ListItemIcon>
+              <ListItemText primary="다크 모드" />
+            </ListItem>
+          </List>
+
+          <Divider sx={{ my: 2 }} />
+          
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom>데이터 관리</Typography>
+          <List>
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleBackup}>
+                <ListItemIcon><BackupIcon /></ListItemIcon>
+                <ListItemText primary="데이터 백업 (JSON)" secondary="현재 상태를 파일로 저장" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => fileInputRef.current?.click()}>
+                <ListItemIcon><RestoreIcon /></ListItemIcon>
+                <ListItemText primary="데이터 복원 (JSON)" secondary="파일로부터 데이터 복구" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => setIsClearConfirmOpen(true)} sx={{ color: 'error.main' }}>
+                <ListItemIcon><ClearIcon color="error" /></ListItemIcon>
+                <ListItemText primary="데이터 초기화" secondary="모든 데이터 삭제" />
+              </ListItemButton>
+            </ListItem>
+          </List>
+          
+          <input
+            type="file"
+            accept=".json"
+            hidden
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+        </Box>
+      </Drawer>
 
       {/* Create Class Dialog */}
       <Dialog open={isClassDialogOpen} onClose={() => setIsClassDialogOpen(false)}>
@@ -525,6 +695,36 @@ const Main = () => {
           >
             삭제
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Restore Confirmation Dialog */}
+      <Dialog open={isRestoreConfirmOpen} onClose={() => setIsRestoreConfirmOpen(false)}>
+        <DialogTitle>데이터 복원 확인</DialogTitle>
+        <DialogContent>
+          <DialogContentText color="error">
+            파일로부터 데이터를 복원하면 **현재 기록된 모든 데이터가 삭제되고 파일의 내용으로 대체됩니다.**
+            정말로 진행하시겠습니까?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsRestoreConfirmOpen(false)}>취소</Button>
+          <Button onClick={handleRestore} variant="contained" color="error">복원 실행</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Clear Confirmation Dialog */}
+      <Dialog open={isClearConfirmOpen} onClose={() => setIsClearConfirmOpen(false)}>
+        <DialogTitle>전체 데이터 초기화</DialogTitle>
+        <DialogContent>
+          <DialogContentText color="error">
+            **모든 클래스와 학생 정보가 영구적으로 삭제됩니다.** 이 작업은 되돌릴 수 없습니다.
+            정말로 초기화하시겠습니까?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsClearConfirmOpen(false)}>취소</Button>
+          <Button onClick={handleClearData} variant="contained" color="error">전체 삭제</Button>
         </DialogActions>
       </Dialog>
     </Container>

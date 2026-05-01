@@ -146,6 +146,20 @@ export default class LsGigiService implements IGigiService {
         return Object.values(targetCm.students);
     }
 
+    async backupData(): Promise<string> {
+        return localStorage.getItem(GIGI_DATA) ?? "[]";
+    }
+
+    async restoreData(data: string): Promise<void> {
+        // Validate if it's valid JSON
+        JSON.parse(data);
+        localStorage.setItem(GIGI_DATA, data);
+    }
+
+    async clearData(): Promise<void> {
+        localStorage.removeItem(GIGI_DATA);
+    }
+
     getPointDetailOf(studentId: string): Promise<PointDetail[]> {
         throw new Error("Method not implemented.");
     }
