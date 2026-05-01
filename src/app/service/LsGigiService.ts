@@ -76,8 +76,10 @@ export default class LsGigiService implements IGigiService {
         return deleted.class;
     }
 
-    getClassList(): Promise<Class[]> {
-        throw new Error("Method not implemented.");
+    async getClassList(): Promise<Class[]> {
+        const classMates = await this.lsMgr.load();
+
+        return classMates.map((cm) => cm.class);
     }
 
     addStudentTo(classId: string, student: Omit<Student, "id">): Promise<Student> {
