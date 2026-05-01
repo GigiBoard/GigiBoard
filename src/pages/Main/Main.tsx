@@ -19,6 +19,7 @@ import {
   DialogActions,
   DialogContentText,
   Chip,
+  GlobalStyles,
 } from '@mui/material';
 import {
   Star,
@@ -177,9 +178,27 @@ const Main = () => {
 
     for (let i = 0; i < count; i++) {
       if (isPenalty) {
-        icons.push(<Bolt key={i} color="error" fontSize="small" />);
+        icons.push(
+          <Bolt 
+            key={i} 
+            sx={{ 
+              color: '#ff9800', 
+              animation: i === count - 1 ? 'lightningStrike 0.4s ease-out' : 'none'
+            }} 
+            fontSize="small" 
+          />
+        );
       } else {
-        icons.push(<Star key={i} sx={{ color: '#ffc107' }} fontSize="small" />);
+        icons.push(
+          <Star 
+            key={i} 
+            sx={{ 
+              color: '#ffc107',
+              animation: i === count - 1 ? 'starRotate 0.6s ease-in-out' : 'none'
+            }} 
+            fontSize="small" 
+          />
+        );
       }
     }
 
@@ -198,6 +217,17 @@ const Main = () => {
 
   return (
     <Container sx={{ py: 4 }}>
+      <GlobalStyles styles={{
+        '@keyframes lightningStrike': {
+          '0%': { transform: 'translateY(-20px) scaleY(1.5)', opacity: 0 },
+          '50%': { opacity: 1 },
+          '100%': { transform: 'translateY(0) scaleY(1)', opacity: 1 },
+        },
+        '@keyframes starRotate': {
+          '0%': { transform: 'rotateZ(0deg) scale(0)', opacity: 0 },
+          '100%': { transform: 'rotateZ(360deg) scale(1)', opacity: 1 },
+        }
+      }} />
       <Stack direction="row" justifyContent="center" alignItems="center" mb={6}>
         <Typography variant="h3" component="h1" fontWeight="bold">
           Gigi Board
@@ -295,10 +325,10 @@ const Main = () => {
                       </Stack>
 
                       <IconButton
-                        color="error"
+                        color="warning"
                         onClick={() => handleUpdatePoint(student, -1)}
                         size="medium"
-                        sx={{ border: '1px solid rgba(211, 47, 47, 0.2)', mx: 1 }}
+                        sx={{ border: '1px solid rgba(255, 152, 0, 0.2)', mx: 1 }}
                       >
                         <Bolt />
                       </IconButton>
@@ -320,7 +350,7 @@ const Main = () => {
                       </IconButton>
 
                       <Box sx={{ width: 50, textAlign: 'right', ml: 1 }}>
-                        <Typography variant="h6" color={student.point > 0 ? 'primary' : student.point < 0 ? 'error' : 'text.secondary'}>
+                        <Typography variant="h6" color={student.point > 0 ? 'primary' : student.point < 0 ? 'warning' : 'text.secondary'}>
                           {student.point > 0 ? `+${student.point}` : student.point}
                         </Typography>
                       </Box>
