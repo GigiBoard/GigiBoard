@@ -6,40 +6,80 @@ import IGigiService from "./IGigiService";
 
 const GIGI_DATA = "GIGI_DATA" as const;
 
-type DataNode = {
+type ClassMate = {
     class: Class;
-    students: Student[];
+    students: Record<string, Student>;
 }
 
 class LsManager {
     async load() {
         try {
-            JSON.parse(localStorage.getItem(GIGI_DATA) ?? "[]")
+            const data = localStorage.getItem(GIGI_DATA) ?? "[]";
+
+            return JSON.parse(data) as ClassMate[];
         }
+        catch {
+            return [];
+        }
+    }
+
+    async save(classMates: ClassMate[]) {
+        const data = JSON.stringify(classMates);
+
+        localStorage.setItem(GIGI_DATA, data);
     }
 }
 
 export default class LsGigiService implements IGigiService {
-    createClass(cls: Omit<Class, "id">): Promise<Class> {
-        
-        
+    private lsMgr = new LsManager();
+
+    async createClass(cls: Omit<Class, "id">): Promise<Class> {
         const id = uuid.v4();
 
-        const newClass = { id, ...cls }
+        const classMates = await this.lsMgr.load();
+        const newClass: Class = { id, ...cls };
+
+        await this.lsMgr.save([
+            ...classMates,
+            {
+                class: newClass,
+                students: {},
+            }
+        ]);
+
+        return newClass;
     }
 
-    updateClass(cls: Class): Promise<Class> {
-        throw new Error("Method not implemented.");
+    async updateClass(cls: Class): Promise<Class> {
+        const classMates = await this.lsMgr.load();
+        const targetClass = classMates.find((item) => item.class.id === cls.id);
+
+        if (!targetClass) throw Error("No such class");
+
+        targetClass.class = cls;
+
+        await this.lsMgr.save(classMates);
+
+        return cls;
     }
 
-    deleteClass(classId: string): Promise<Class> {
-        throw new Error("Method not implemented.");
+    async deleteClass(classId: string): Promise<Class> {
+        const classMates = await this.lsMgr.load();
+
+        const newClassMates = classMates.filter(item => item.class.id !== classId);
+        const deleted = classMates.find(item => item.class.id === classId);
+
+        await this.lsMgr.save(newClassMates);
+
+        if (!deleted) throw new Error("No such class");
+
+        return deleted.class;
     }
 
     getClassList(): Promise<Class[]> {
         throw new Error("Method not implemented.");
     }
-    
+
     addStudentTo(classId: string, student: Omit<Student, "id">): Promise<Student> {
         throw new Error("Method not implemented.");
     }
