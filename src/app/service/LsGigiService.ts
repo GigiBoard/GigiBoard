@@ -96,7 +96,7 @@ export default class LsGigiService implements IGigiService {
         
         targetCm.students = {
             ...targetCm.students,
-            id: newStudent,
+            [id]: newStudent,
         };
 
         this.lsMgr.save(classMates);
@@ -104,8 +104,21 @@ export default class LsGigiService implements IGigiService {
         return newStudent;
     }
 
-    updateStudentTo(classId: string, student: Student): Promise<Student> {
-        throw new Error("Method not implemented.");
+    async updateStudentTo(classId: string, student: Student): Promise<Student> {
+        const classMates = await this.lsMgr.load();
+        const id = student.id;
+        const targetCm = classMates.find(cm => cm.class.id === classId);
+
+        if (!targetCm) throw new Error("No such class");
+
+        targetCm.students = {
+            ...targetCm.students,
+            [id]: student,
+        };
+
+        this.lsMgr.save(classMates);
+
+        return student;
     }
 
     deleteStudentFrom(classId: string, student: Student): Promise<Student> {
