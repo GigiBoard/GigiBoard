@@ -69,9 +69,9 @@ export default class LsGigiService implements IGigiService {
         const newClassMates = classMates.filter(item => item.class.id !== classId);
         const deleted = classMates.find(item => item.class.id === classId);
 
-        await this.lsMgr.save(newClassMates);
-
         if (!deleted) throw new Error("No such class");
+
+        await this.lsMgr.save(newClassMates);
 
         return deleted.class;
     }
@@ -81,61 +81,60 @@ export default class LsGigiService implements IGigiService {
 
         return classMates.map((cm) => cm.class);
     }
-
-    async addStudentTo(classId: string, student: Omit<Student, "id">): Promise<Student> {
-        const classMates = await this.lsMgr.load();
-        const id = uuid.v4();
-        const newStudent: Student = {
-            id,
-            ...student,
-        }
-
-        const targetCm = classMates.find(cm => cm.class.id === classId);
-
-        if (!targetCm) throw new Error("No such class");
-        
-        targetCm.students = {
-            ...targetCm.students,
-            [id]: newStudent,
-        };
-
-        this.lsMgr.save(classMates);
-
-        return newStudent;
+async addStudentTo(classId: string, student: Student): Promise<Student> {
+    const classMates = await this.lsMgr.load();
+    const id = student.id || uuid.v4();
+    const newStudent: Student = {
+        ...student,
+        id,
     }
 
-    async updateStudentTo(classId: string, student: Student): Promise<Student> {
-        const classMates = await this.lsMgr.load();
-        const id = student.id;
-        const targetCm = classMates.find(cm => cm.class.id === classId);
+    const targetCm = classMates.find(cm => cm.class.id === classId);
 
-        if (!targetCm) throw new Error("No such class");
+    if (!targetCm) throw new Error("No such class");
 
-        targetCm.students = {
-            ...targetCm.students,
-            [id]: student,
-        };
+    targetCm.students = {
+        ...targetCm.students,
+        [id]: newStudent,
+    };
 
-        this.lsMgr.save(classMates);
+    await this.lsMgr.save(classMates);
 
-        return student;
-    }
+    return newStudent;
+}
 
-    async deleteStudentFrom(classId: string, studentId: string): Promise<Student> {
-        const classMates = await this.lsMgr.load();
-        const id = studentId
-        const targetCm = classMates.find(cm => cm.class.id === classId);
+async updateStudentTo(classId: string, student: Student): Promise<Student> {
+    const classMates = await this.lsMgr.load();
+    const id = student.id;
+    const targetCm = classMates.find(cm => cm.class.id === classId);
 
-        if (!targetCm) throw new Error("No such class");
+    if (!targetCm) throw new Error("No such class");
 
-        const deleted = JSON.parse(JSON.stringify(targetCm.students[id]))
+    targetCm.students = {
+        ...targetCm.students,
+        [id]: student,
+    };
 
-        delete targetCm.students[id];
+    await this.lsMgr.save(classMates);
 
-        this.lsMgr.save(classMates);
+    return student;
+}
 
-        return deleted;
-    }
+async deleteStudentFrom(classId: string, studentId: string): Promise<Student> {
+    const classMates = await this.lsMgr.load();
+    const targetCm = classMates.find(cm => Object.keys(cm.students).includes(studentId));
+
+    if (!targetCm) throw new Error("No such class or student");
+
+    const deleted = JSON.parse(JSON.stringify(targetCm.students[studentId]))
+
+    delete targetCm.students[studentId];
+
+    await this.lsMgr.save(classMates);
+
+    return deleted;
+}
+
 
     async getStudentListOf(classId: string): Promise<Student[]> {
         const classMates = await this.lsMgr.load();
@@ -151,7 +150,6 @@ export default class LsGigiService implements IGigiService {
     }
 
     async restoreData(data: string): Promise<void> {
-        // Validate if it's valid JSON
         JSON.parse(data);
         localStorage.setItem(GIGI_DATA, data);
     }

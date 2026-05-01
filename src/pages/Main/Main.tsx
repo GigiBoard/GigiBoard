@@ -153,6 +153,7 @@ const Main = () => {
   const handleAddStudent = async () => {
     if (!selectedClass || !newStudentName) return;
     await gigiService.addStudentTo(selectedClass.id, {
+      id: '', // Will be generated
       name: newStudentName,
       point: 0,
     });
@@ -161,11 +162,23 @@ const Main = () => {
     loadStudents(selectedClass.id);
   };
 
-  const handleUpdatePoint = async (student: Student, delta: number) => {
+  const handleUpdatePoint = async (studentId: string, delta: number) => {
     if (!selectedClass) return;
-    const updatedStudent = { ...student, point: student.point + delta };
-    await gigiService.updateStudentTo(selectedClass.id, updatedStudent);
-    loadStudents(selectedClass.id);
+
+    let targetStudent: Student | null = null;
+    setStudents(prev => {
+      const newList = [...prev];
+      const index = newList.findIndex(s => s.id === studentId);
+      if (index !== -1) {
+        targetStudent = { ...newList[index], point: newList[index].point + delta };
+        newList[index] = targetStudent;
+      }
+      return newList;
+    });
+
+    if (targetStudent) {
+      await gigiService.updateStudentTo(selectedClass.id, targetStudent);
+    }
   };
 
   const handleDeleteClass = async () => {
@@ -220,7 +233,7 @@ const Main = () => {
     const dateStr = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}`;
     
     link.href = url;
-    link.download = `GigiBoard_${dateStr}.json`;
+    link.download = `GigiBoard_${dateStr}.gigi`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -238,7 +251,7 @@ const Main = () => {
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; // Reset for same file re-selection
+    e.target.value = ''; 
   };
 
   const handleRestore = async () => {
@@ -249,7 +262,7 @@ const Main = () => {
       await loadClasses();
       alert('데이터가 성공적으로 복원되었습니다.');
     } catch (err) {
-      alert('데이터 복원에 실패했습니다. 올바른 JSON 형식인지 확인해 주세요.');
+      alert('데이터 복원에 실패했습니다. 올바른 형식인지 확인해 주세요.');
     }
   };
 
@@ -434,7 +447,7 @@ const Main = () => {
 
                       <IconButton
                         color="warning"
-                        onClick={() => handleUpdatePoint(student, -1)}
+                        onClick={() => handleUpdatePoint(student.id, -1)}
                         size="medium"
                         sx={{ border: '1px solid rgba(255, 152, 0, 0.2)', mx: 1 }}
                       >
@@ -451,7 +464,7 @@ const Main = () => {
                           border: '1px solid rgba(255, 193, 7, 0.2)',
                           mx: 1 
                         }}
-                        onClick={() => handleUpdatePoint(student, 1)}
+                        onClick={() => handleUpdatePoint(student.id, 1)}
                         size="medium"
                       >
                         <Star />
@@ -530,13 +543,13 @@ const Main = () => {
             <ListItem disablePadding>
               <ListItemButton onClick={handleBackup}>
                 <ListItemIcon><BackupIcon /></ListItemIcon>
-                <ListItemText primary="데이터 백업 (JSON)" secondary="현재 상태를 파일로 저장" />
+                <ListItemText primary="데이터 백업 (.gigi)" secondary="현재 상태를 파일로 저장" />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
               <ListItemButton onClick={() => fileInputRef.current?.click()}>
                 <ListItemIcon><RestoreIcon /></ListItemIcon>
-                <ListItemText primary="데이터 복원 (JSON)" secondary="파일로부터 데이터 복구" />
+                <ListItemText primary="데이터 복원 (.gigi)" secondary="파일로부터 데이터 복구" />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
@@ -549,7 +562,7 @@ const Main = () => {
           
           <input
             type="file"
-            accept=".json"
+            accept=".gigi"
             hidden
             ref={fileInputRef}
             onChange={handleFileChange}
