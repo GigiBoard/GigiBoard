@@ -27,8 +27,7 @@ import {
   Switch,
 } from '@mui/material';
 import {
-  Star,
-  Bolt,
+  SentimentVeryDissatisfied as CryIcon,
   PersonAdd,
   School,
   Close as CloseIcon,
@@ -40,6 +39,8 @@ import {
   DeleteForever as ClearIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
+  SentimentSatisfiedAlt as SmileIcon,
+  Phone as PhoneIcon,
 } from '@mui/icons-material';
 import LsGigiService from '@/app/service/LsGigiService';
 import { Class } from '@/types/class';
@@ -282,22 +283,22 @@ const Main = () => {
     for (let i = 0; i < count; i++) {
       if (isPenalty) {
         icons.push(
-          <Bolt 
+          <CryIcon 
             key={i} 
             sx={{ 
-              color: '#ff9800', 
-              animation: i === count - 1 ? 'lightningStrike 0.4s ease-out' : 'none'
+              color: '#ff0000', 
+              animation: i === count - 1 ? 'cryShake 0.4s ease-out' : 'none'
             }} 
             fontSize="small" 
           />
         );
       } else {
         icons.push(
-          <Star 
+          <SmileIcon 
             key={i} 
             sx={{ 
               color: '#ffc107',
-              animation: i === count - 1 ? 'starRotate 0.6s ease-in-out' : 'none'
+              animation: i === count - 1 ? 'smileRotate 0.6s ease-in-out' : 'none'
             }} 
             fontSize="small" 
           />
@@ -321,12 +322,12 @@ const Main = () => {
   return (
     <Container sx={{ py: 4, position: 'relative' }}>
       <GlobalStyles styles={{
-        '@keyframes lightningStrike': {
-          '0%': { transform: 'translateY(-20px) scaleY(1.5)', opacity: 0 },
-          '50%': { opacity: 1 },
-          '100%': { transform: 'translateY(0) scaleY(1)', opacity: 1 },
+        '@keyframes cryShake': {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '25%': { transform: 'translateX(-2px) rotate(-5deg)' },
+          '75%': { transform: 'translateX(2px) rotate(5deg)' },
         },
-        '@keyframes starRotate': {
+        '@keyframes smileRotate': {
           '0%': { transform: 'rotateZ(0deg) scale(0)', opacity: 0 },
           '100%': { transform: 'rotateZ(360deg) scale(1)', opacity: 1 },
         }
@@ -451,7 +452,7 @@ const Main = () => {
                         size="medium"
                         sx={{ border: '1px solid rgba(255, 152, 0, 0.2)', mx: 1 }}
                       >
-                        <Bolt />
+                        <CryIcon color="error" />
                       </IconButton>
 
                       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
@@ -467,13 +468,17 @@ const Main = () => {
                         onClick={() => handleUpdatePoint(student.id, 1)}
                         size="medium"
                       >
-                        <Star />
+                        <SmileIcon />
                       </IconButton>
 
                       <Box sx={{ width: 50, textAlign: 'right', ml: 1 }}>
                         <Typography variant="h6" color={student.point > 0 ? 'primary' : student.point < 0 ? 'warning' : 'text.secondary'}>
                           {student.point > 0 ? `+${student.point}` : student.point}
                         </Typography>
+                      </Box>
+
+                      <Box sx={{ width: 40, display: 'flex', justifyContent: 'center', ml: 1 }}>
+                        {student.point <= -3 && <PhoneIcon color="error" />}
                       </Box>
                     </ListItem>
                   ))}
