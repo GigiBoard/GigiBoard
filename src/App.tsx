@@ -5,7 +5,7 @@ import React from 'react';
 
 const App = () => {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <CssBaseline />
       <Routing />
     </BrowserRouter>
